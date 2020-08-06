@@ -51,6 +51,7 @@ func (c *Client) Hosts(q string) ([]Host, error) {
 		return nil, err
 	}
 	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("Accept", "application/json")
 
 	resp, err := cli.Do(req)
 	if err != nil {
