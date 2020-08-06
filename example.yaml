@@ -1,0 +1,5 @@
+clusters:
+  mycluster:
+    url: http://example.com:8080
+  othercluster:
+    url: http://example2.com:8080
