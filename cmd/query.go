@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"fmt"
+	"sort"
+	"sync"
 
 	"github.com/segfaultax/go-pdbq/puppetdb"
 	"github.com/spf13/cobra"
@@ -36,20 +38,43 @@ var queryCmd = &cobra.Command{
 			scope = append(scope, cluster)
 		}
 
+		var wg sync.WaitGroup
+
+		ch := make(chan string)
+
 		for _, cluster := range scope {
-			c, err := puppetdb.NewClient(cluster.URL)
-			if err != nil {
-				return err
-			}
+			wg.Add(1)
+			go func(endpoint string) {
+				defer wg.Done()
+				c, err := puppetdb.NewClient(endpoint)
+				if err != nil {
+					fmt.Println(err)
+				}
 
-			hosts, err := c.Hosts(args[0])
-			if err != nil {
-				return err
-			}
+				hosts, err := c.Hosts(args[0])
+				if err != nil {
+					fmt.Println(err)
+				}
 
-			for _, h := range hosts {
-				fmt.Println(h.Name)
-			}
+				for _, h := range hosts {
+					ch <- h.Name
+				}
+			}(cluster.URL)
+		}
+
+		go func() {
+			wg.Wait()
+			close(ch)
+		}()
+
+		var all []string
+		for s := range ch {
+			all = append(all, s)
+		}
+
+		sort.Strings(all)
+		for _, h := range all {
+			fmt.Println(h)
 		}
 
 		return nil
